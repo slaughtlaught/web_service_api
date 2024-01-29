@@ -19,7 +19,7 @@ func main() {
 
 	r.Mount("/v1/note", NoteRoutes())
 
-	http.ListenAndServe(":3333", r)
+	http.ListenAndServe(":8080", r)
 }
 
 func NoteRoutes() chi.Router {
