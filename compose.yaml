@@ -1,0 +1,14 @@
+services:
+  server:
+    build: .
+    ports:
+      - "8080:8080"
+  database:
+    image: "postgres:15-alpine3.18"
+    deploy:
+      mode: global
+    environment:
+      - POSTGRES_PASSWORD=password123
+    ports:
+      - "5432:5432"
+    

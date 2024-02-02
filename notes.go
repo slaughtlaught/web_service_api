@@ -5,14 +5,16 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type NoteHandler struct {
+	db *pgxpool.Pool
 }
 
 func (n NoteHandler) ListNotes(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	err := json.NewEncoder(w).Encode(listNotes())
+	err := json.NewEncoder(w).Encode(GetAllNotes())
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
@@ -22,16 +24,12 @@ func (n NoteHandler) ListNotes(w http.ResponseWriter, r *http.Request) {
 func (n NoteHandler) GetNote(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	id := chi.URLParam(r, "id")
-	note := getNote(id)
-	if note == nil {
-		http.Error(w, "Note with given ID not found", http.StatusNotFound)
-	}
+	note := GetNoteById(id)
 	err := json.NewEncoder(w).Encode(note)
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
-
 }
 
 func (n NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
@@ -41,7 +39,7 @@ func (n NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	addNote(note)
+	AddNote(note)
 	err = json.NewEncoder(w).Encode(note)
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
