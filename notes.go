@@ -14,7 +14,7 @@ type NoteHandler struct {
 
 func (n NoteHandler) ListNotes(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	err := json.NewEncoder(w).Encode(GetAllNotes())
+	err := json.NewEncoder(w).Encode(GetAllNotes(n.db))
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
@@ -24,7 +24,7 @@ func (n NoteHandler) ListNotes(w http.ResponseWriter, r *http.Request) {
 func (n NoteHandler) GetNote(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	id := chi.URLParam(r, "id")
-	note := GetNoteById(id)
+	note := GetNoteById(n.db, id)
 	err := json.NewEncoder(w).Encode(note)
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -39,7 +39,7 @@ func (n NoteHandler) CreateNote(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	AddNote(note)
+	AddNote(n.db, note)
 	err = json.NewEncoder(w).Encode(note)
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)

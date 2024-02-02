@@ -37,13 +37,7 @@ func CreateTable(pool *pgxpool.Pool) error {
 	return err
 }
 
-func GetAllNotes() []Note {
-	urlOfDb := "postgres://postgres:Postgres@localhost:5432/postgres"
-	pool, err := pgxpool.New(context.Background(), urlOfDb)
-	if err != nil {
-		log.Println(err)
-		return nil
-	}
+func GetAllNotes(pool *pgxpool.Pool) []Note {
 	rows, err := pool.Query(context.Background(), "select * from NOTES")
 	if err != nil {
 		log.Printf("error getting data from db: %v", err)
@@ -64,33 +58,18 @@ func GetAllNotes() []Note {
 	return notes
 }
 
-func GetNoteById(id string) Note {
-	urlOfDb := "postgres://postgres:Postgres@localhost:5432/postgres"
-	pool, err := pgxpool.New(context.Background(), urlOfDb)
-	if err != nil {
-		log.Println(err)
-	}
+func GetNoteById(pool *pgxpool.Pool, id string) Note {
 	row := pool.QueryRow(context.Background(), "select * from NOTES where id = $1", id)
-	if err != nil {
-		log.Printf("error getting data from db: %v", err)
-	}
 	n := Note{}
-	err = row.Scan(&n.ID, &n.Title, &n.Content)
+	row.Scan(&n.ID, &n.Title, &n.Content)
 	return n
 }
 
-func AddNote(note Note) error {
-	urlOfDb := "postgres://postgres:Postgres@localhost:5432/postgres"
-	dbpool, err := pgxpool.New(context.Background(), urlOfDb)
-	if err != nil {
-		return err
-	}
-	defer dbpool.Close()
-
+func AddNote(pool *pgxpool.Pool, note Note) error {
 	guid := xid.New()
 	id, title, content := guid, note.Title, note.Content
 
-	result, err := dbpool.Exec(context.Background(), "insert into NOTES (id, title, content) values ($1, $2, $3)", id, title, content)
+	result, err := pool.Exec(context.Background(), "insert into NOTES (id, title, content) values ($1, $2, $3)", id, title, content)
 
 	if err != nil {
 		fmt.Print("insert exec failed: %v", err)
