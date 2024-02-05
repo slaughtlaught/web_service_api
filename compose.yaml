@@ -3,12 +3,23 @@ services:
     build: .
     ports:
       - "8080:8080"
-  database:
+    depends_on: 
+      - "postgres"
+  postgres:
     image: "postgres:15-alpine3.18"
-    deploy:
-      mode: global
     environment:
-      - POSTGRES_PASSWORD=password123
+       POSTGRES_PASSWORD: "postgres"
+       POSTGRES_USER: "postgres"
+       POSTGRES_DB: "notes"
     ports:
       - "5432:5432"
-    
+  migrate:
+    image: migrate/migrate
+    restart: on-failure
+    volumes:
+      - ./migrations:/migrations
+    command: ["-path", "/migrations", "-database",  "postgres://postgres:postgres@postgres:5432/notes?sslmode=disable", "up"]
+    links:
+      - postgres
+    depends_on:
+      - postgres

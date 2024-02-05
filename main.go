@@ -1,43 +1,40 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
+	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/slaughtlaught/web-service-api/internal/infrasctructure/persistance"
+	"github.com/slaughtlaught/web-service-api/internal/server"
+	"github.com/slaughtlaught/web-service-api/internal/service"
+	"github.com/slaughtlaught/web-service-api/pkg/dbx"
 )
 
 func main() {
-	pool, closefunc, err := NewStore()
+
+	ctx := context.Background()
+	pool, closefunc, err := dbx.NewStorage(ctx)
 	if err != nil {
 		log.Printf("error connecting to a database %v", err)
 	}
 	defer closefunc()
-	if err1 := CreateTable(pool); err1 != nil {
-		log.Printf("error creating a table database %v", err1)
+
+	noteSource := persistance.NewStorage(pool)
+	noteService := service.NewNotes(noteSource)
+	noteServer := server.NewNoteHandler(noteService)
+	router := server.NewRouter(noteServer)
+
+	httpServer := http.Server{
+		Addr:              ":8080",
+		WriteTimeout:      time.Second * 5,
+		ReadTimeout:       time.Second * 5,
+		ReadHeaderTimeout: time.Second * 5,
+		IdleTimeout:       time.Minute,
+		Handler:           router,
 	}
-
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-
-	//health check
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/plain")
-		w.Write([]byte("WORKING FINE(I GUESS)"))
-	})
-
-	r.Mount("/v1/note", NoteRoutes(pool))
-
-	http.ListenAndServe(":8080", r)
-}
-
-func NoteRoutes(pool *pgxpool.Pool) chi.Router {
-	r := chi.NewRouter()
-	noteHandler := NoteHandler{db: pool}
-	r.Get("/", noteHandler.ListNotes)
-	r.Post("/", noteHandler.CreateNote)
-	r.Get("/{id}", noteHandler.GetNote)
-	return r
+	if err := httpServer.ListenAndServe(); err != nil {
+		log.Fatalf("http.ListenAndServe: %v", err)
+	}
 }
